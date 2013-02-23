@@ -1,0 +1,98 @@
+\documentclass[twoside]{article}
+
+
+% ------
+% Fonts and typesetting settings
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\linespread{1.05} % Palatino needs more space between lines
+\usepackage{microtype}
+
+
+% ------
+% Page layout
+\usepackage[hmarginratio=1:1,top=32mm,columnsep=20pt]{geometry}
+\usepackage[font=it]{caption}
+\usepackage{paralist}
+\usepackage{multicol}
+
+% ------
+% Lettrines
+\usepackage{lettrine}
+
+
+% ------
+% Titling (section/subsection)
+\usepackage{titlesec}
+\renewcommand\thesection{\Roman{section}}
+\titleformat{\section}[block]{\large\scshape\centering}{\thesection.}{1em}{}
+
+
+
+
+% ------
+% Maketitle metadata
+\title{\vspace{-15mm}%
+	\fontsize{24pt}{10pt}\selectfont
+	\textbf{Distributed CUDA MD5 Cracker}
+	}	
+\author{%
+	\large
+	\textsc{Austin Munsch, Luke Larson, Orion Miller} \\[2mm]
+	\normalsize	California Polytechnic State University \\
+	\vspace{-5mm}
+	}
+\date{\today}
+
+
+
+\setlength{\parskip}{0pt}
+\setlength{\parsep}{0pt}
+\setlength{\topskip}{0pt}
+\setlength{\topmargin}{0pt}
+\setlength{\topsep}{0pt}
+\setlength{\partopsep}{0pt}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\maketitle
+	
+
+\begin{multicols}{2}
+
+\section{Project Description}
+A GPU enabled dictionary-based MD5 cracker. The program will receive as input a MD5 hash that it is trying to find a match for as well as a file with a list of possible `words' that might map to that hash. The program will then parallelize the hashing of all those `words' until it either finds a result or runs out of input. Password recovery from MD5 is a practical use of MD5 cracking.
+
+\section{Related Works}
+{\em Distributed Hash Cracker: A Cross Platform GPU Accelerated Password Recovery System} is a very similar effort conducted by a group at Rensselaer Polytechnic Institute. In the paper, the group speaks of creating a network-distributed CUDA MD5 hash cracker. They explain how cracking MD5 hashes is easy to parallelize because each piece of input to be tested is completely independent of any other piece of input, allowing the problem space to be effectively split up and dealt with in chunks. They use a master/slave design to implement network scalability, requiring them to designate a master computer to coordinate work chunks to slaves in a round robin fashion. Each slave performs the operations requested and sends a response code to the server indicating success or failure. If a slave's connection drops during computation, the master server will put the assigned work back into the pool of pending jobs. We plan to have the same functionality as the program described in this paper, but we plan to use a distributed ``bittorrent like'' approach instead of the master/slave configuration.
+
+{\em In Performance Analysis of MD5}, Joseph Touch analyzes the MD5 algorithm as part of a study to determine whether the MD5 algorithm would be suitably efficient to designate as the preferred hashing function of IPv6. In the paper, Touch discusses various methods to increase the efficiency of MD5 on a CPU. The paper also contains many benchmarks of MD5 using these optimizations. This paper aligns with our goal to optimize the process of MD5 cracking, however this paper focuses on improvements gained on a non-parallel CPU. Our project is aimed at optimizing the MD5 hashing process using parallelism, which can ultimately be compared with the results of optimizing MD5 hashing on a CPU. We are investigating the throughput differences of spending time optimizing the MD5 algorithm vs using a potentially less optimized MD5 on a parallel system.
+
+In {\em Password Policy: The Good, The Bad, and The Ugly}, Dr. Wayne C. Summers and Dr. Edward Bosworth discuss how good passwords are vitally important with modern computer systems, how good password practices are rarely followed, and what people can do to improve their password practices. The reason that good passwords tend to be vitally important is that they are commonly the only ``line of defense'' in computer systems, which means that if users have poor passwords and password practices this could directly result insecure computer systems. At the end they discuss how users can overcome these problems by following a strong password policy. This is related to our project because the strength of a password directly influences the success rate of MD5 cracking, and as passwords get longer and better, newer methods of MD5 cracking must be found.
+
+In {\em MD5 Collision Demo}, Peter Selinger describes how to take advantage of Wang and Yu's research of generating MD5 collisions and expand upon it to work on an arbitrary initialization vector. Due to the block nature of MD5, it is possible to take an initial segment of arbitrary bytes of a length divisible by 64 and generate two different files which both compute to the same MD5 hash.
+
+In Richard Stiennon's article, {\em Flame's MD5 collision is the most worrisome security discovery of 2012}, Stiennon discusses how MD5 collisions can be used to create false certificates in order to trick people into thinking whatever is signed by that certification is legitimate. According to Stiennon, there was a study done on 450 companies in 2012 of which 17\% still use certifications based on MD5. This is quite a large number, considering MD5 was proven vulnerable in 2008. These two works are similar in that they discuss MD5 cracking, however they differ from our project because they deal specifically with the generation of MD5 collisions rather than deriving passwords from MD5 hashes.
+
+\vbox{
+\begin{thebibliography}{1}
+
+\bibitem{dist} Andrew Zonenberg. {\em Distributed Hash Cracker: A Cross Platform GPU Accelerated Password Recovery System.}  2009.
+
+\bibitem{perf} Joseph D. Touch. {\em Performance Analysis of MD5.} 1995.
+
+\bibitem{collision} Peter Selinger. {\em MD5 Collision Demo.} 2006.
+
+\bibitem{flame} Richard Stiennon. {\em Flame's MD5 collision is the most worrisome security discovery of 2012.} 2012.
+
+\bibitem{password} Dr. Wayne C. Summers, Dr. Edward Bosworth. {\em Password Policy: The Good, The Bad, and The Ugly.} 2004.
+
+\end{thebibliography}
+}
+
+\end{multicols}
+
+
+
+\end{document}
