@@ -9,6 +9,7 @@
 
 int validateDictionary(char* filename);
 char* validateHash(char* hash);
+void crackHash(char* hash, int dict);
 
 int main(int argc, char* argv[]) {
    int dict; /* Dictionary file descriptor */
@@ -22,7 +23,8 @@ int main(int argc, char* argv[]) {
    dict = validateDictionary(argv[1]);
    hash = validateHash(argv[2]);
 
-   printf("%s\n", hash);
+   /* Attempt to crack the hash */
+   crackHash(hash, dict);
 
    close(dict);
 
@@ -61,4 +63,8 @@ char* validateHash(char* hash) {
    }
 
    return hash;
+}
+
+void crackHash(char* hash, int dict) {
+
 }
