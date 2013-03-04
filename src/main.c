@@ -76,6 +76,7 @@ void crackHash(char* hash, int dict) {
    int i;
    int j = 0;
    int readReturn;
+   char* words;
 
    md5_state_t state;
    md5_byte_t digest[16];
