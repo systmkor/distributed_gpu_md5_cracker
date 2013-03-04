@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 #include <string.h>
 #include <ctype.h>
@@ -12,9 +13,16 @@
 
 #define WORD_LEN 512
 
+typedef struct Word {
+   char* word;
+   int len;
+} Word;
+
 int validateDictionary(char* filename);
 char* validateHash(char* hash);
 void crackHash(char* hash, int dict);
+int countWords(char* dictFile, int size);
+void initWords(Word* words, char* dictFile, int numWords, int size);
 
 int main(int argc, char* argv[]) {
    int dict; /* Dictionary file descriptor */
@@ -71,55 +79,74 @@ char* validateHash(char* hash) {
 }
 
 void crackHash(char* hash, int dict) {
-   char word[WORD_LEN + 1];
-   char c;
    int i;
-   int j = 0;
-   int readReturn;
-   char* words;
+   Word* words;
+   struct stat fileStat;
+   char* dictFile;
+   int numWords;
+   int curWord;
+   char word[WORD_LEN];
 
    md5_state_t state;
    md5_byte_t digest[16];
    char hex_output[16*2 + 1];
 
-   while (1) {
-      /* Read in 1 word from dictionary */
-      i = 0;
-      do {
-         readReturn = read(dict, &c, 1);
-         if (readReturn == -1) {
-            printf("Failed to read from input file\n");
-            exit(EXIT_FAILURE);
-         }
-         if (readReturn == 0) {
-            c = EOF;
-            break;
-         }
-         if (c == '\n' || c == EOF || i == WORD_LEN)
-            break;
+   /* Map the dictionary file */
+   fstat(dict, &fileStat);
+   dictFile = mmap(NULL, fileStat.st_size, PROT_READ, MAP_SHARED, dict, 0);
 
-         word[i] = c;
-         i++;
-      } while (1);
-      word[i] = '\0';
+   /* Count the number of words */
+   numWords = countWords(dictFile, fileStat.st_size);
+   words = malloc(sizeof(Word) * numWords);
 
-      /* End condition */
-      if (c == EOF)
-         break;
+   /* Fill in the array of words */
+   initWords(words, dictFile, numWords, fileStat.st_size);
 
-      /* Hash word and compare */
+   /* Hash word and compare */
+   for (curWord = 0; curWord < numWords; curWord++) {
+      /* Hash */
       md5_init(&state);
-      md5_append(&state, (const md5_byte_t *) word, strlen(word));
+      md5_append(&state, (const md5_byte_t *) words[curWord].word, words[curWord].len);
       md5_finish(&state, digest);
       for (i = 0; i < 16; i++)
          sprintf(hex_output + i * 2, "%02x", digest[i]);
+
+      /* Compare */
       if (strncmp(hex_output, hash, 16) == 0) {
+         snprintf(word, words[curWord].len + 1, "%s", words[curWord].word);
+         word[words[curWord].len] = '\0';
          printf("%s matches\n", word);
          return;
       }
-
-      j++;
    }
 
-   printf("Tested against %d words, no match\n", j);
+   printf("Tested against %d words, no match\n", numWords);
+}
+
+int countWords(char* dictFile, int size) {
+   int count = 0;
+   int i = 0;
+
+   for (i = 0; i < size; i++) {
+      if (dictFile[i] == '\n')
+         count++;
+   }
+
+   return count;
+}
+
+void initWords(Word* words, char* dictFile, int numWords, int size) {
+   int i = 0;
+   int wordLen = 0;
+   int curWord = 0;
+
+   for (i = 0; i < size; i++) {
+      if (dictFile[i] == '\n') {
+         words[curWord].len = wordLen - 1;
+         words[curWord].word = &(dictFile[i]) - wordLen + 1;
+         curWord++;
+         wordLen = 0;
+      }
+      wordLen++;
+   }
 }
