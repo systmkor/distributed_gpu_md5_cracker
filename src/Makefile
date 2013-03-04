@@ -11,8 +11,8 @@ ALL=md5cracker
 
 all:	$(ALL)
 
-md5cracker:	main.c
-		$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+md5cracker:	md5.c main.c
+		$(CC) $(CFLAGS) $(LDFLAGS) -o $@ md5.c main.c
 
 clean:
 		rm -rf core* *.o *.gch $(ALL)

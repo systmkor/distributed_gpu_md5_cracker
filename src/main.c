@@ -6,6 +6,11 @@
 #include <fcntl.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
+
+#include "md5.h"
+
+#define WORD_LEN 512
 
 int validateDictionary(char* filename);
 char* validateHash(char* hash);
@@ -66,5 +71,54 @@ char* validateHash(char* hash) {
 }
 
 void crackHash(char* hash, int dict) {
+   char word[WORD_LEN + 1];
+   char c;
+   int i;
+   int j = 0;
+   int readReturn;
 
+   md5_state_t state;
+   md5_byte_t digest[16];
+   char hex_output[16*2 + 1];
+
+   while (1) {
+      /* Read in 1 word from dictionary */
+      i = 0;
+      do {
+         readReturn = read(dict, &c, 1);
+         if (readReturn == -1) {
+            printf("Failed to read from input file\n");
+            exit(EXIT_FAILURE);
+         }
+         if (readReturn == 0) {
+            c = EOF;
+            break;
+         }
+         if (c == '\n' || c == EOF || i == WORD_LEN)
+            break;
+
+         word[i] = c;
+         i++;
+      } while (1);
+      word[i] = '\0';
+
+      /* End condition */
+      if (c == EOF)
+         break;
+
+      /* Hash word and compare */
+      md5_init(&state);
+      md5_append(&state, (const md5_byte_t *) word, strlen(word));
+      md5_finish(&state, digest);
+      for (i = 0; i < 16; i++)
+         sprintf(hex_output + i * 2, "%02x", digest[i]);
+      if (strncmp(hex_output, hash, 16) == 0) {
+         printf("%s matches\n", word);
+         return;
+      }
+
+      j++;
+   }
+
+   printf("Tested against %d words, no match\n", j);
 }
