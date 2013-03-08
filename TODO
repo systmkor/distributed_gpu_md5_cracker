@@ -1,0 +1,54 @@
+
+
+=== TODO ===
+ * program as if we are going to make a distributed version
+ * write as if we are publishing a paper
+
+Programming
+  + [ GPU ]
+    - Dictionary
+    - Brute Force
+
+  + [ CPU ]
+    - Dictionary
+    - Brute Force
+
+  + [ Distributed ]
+    - Understand
+    - Hello World
+    - Brute Force
+    - Dictionary 
+
+Paper (Figure out Saturday)
+  + STUFF
+
+
+=== ACTIVE ===
+
+  + [ GPU ]
+    - Dictionary systmkor [thinking, coding]
+  
++ [ Distributed ]
+    - Understand systmkor [reading]
+
+
+=== COMPLETED ===
+
+*nothing*
+
+
+=== NOTES ===
+
+Todo Section
+  * keep things in the to do section until they are moved to the completed section
+
+Active Section
+  * layout_ task person [states, ...]
+  * states_ [reading, thinking, coding, compiling, testing]
+
+Completed Section
+  * only put here if code is coded, compiling, and well tested
+
+
+
+
