@@ -1,3 +1,0 @@
-echo "md5sum(yellow) == d487dd0b55dfcacdd920ccbdaeafa351"
-echo md5cracker dict d487dd0b55dfcacdd920ccbdaeafa351
-./md5cracker dict d487dd0b55dfcacdd920ccbdaeafa351
