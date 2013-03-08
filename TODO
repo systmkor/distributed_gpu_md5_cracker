@@ -5,6 +5,7 @@
  * write as if we are publishing a paper
 
 Programming
+
   + [ GPU ]
     - Dictionary
     - Brute Force
@@ -12,6 +13,9 @@ Programming
   + [ CPU ]
     - Dictionary
     - Brute Force
+
+  + [ Compile ]
+    - Makefile
 
   + [ Distributed ]
     - Understand
@@ -25,10 +29,13 @@ Paper (Figure out Saturday)
 
 === ACTIVE ===
 
+  + [ Compile ]
+    - Makefile systmkor [thinking, coding]
+
   + [ GPU ]
     - Dictionary systmkor [thinking, coding]
   
-+ [ Distributed ]
+  + [ Distributed ]
     - Understand systmkor [reading]
 
 
