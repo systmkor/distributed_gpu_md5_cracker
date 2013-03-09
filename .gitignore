@@ -1,3 +1,8 @@
 ./bin/md5cracker
 ./src/cpu/md5cracker
-
+./src/*.o
+./src/*.d
+./src/cpu/*.o
+./src/cpu/*.d
+./src/gpu/*.o
+./src/gpu/*.d
