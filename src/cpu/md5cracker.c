@@ -27,6 +27,8 @@ void initWords(Word* words, char* dictFile, int numWords, int size);
 int main(int argc, char* argv[]) {
    int dict; /* Dictionary file descriptor */
    char* hash;
+   char hash2[33] = {0};
+   md5_byte_t hash_digest[16] = {0};
 
    /* Validate arguments */
    if (argc < 3) {

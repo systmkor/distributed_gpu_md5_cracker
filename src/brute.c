@@ -11,7 +11,7 @@ int main() {
     char buffer[255] = {0};
     int int_buffer[255] = {0};
     int chars_length, str_length = 6;
-    int i,j=0;
+    int i, j = 0;
 
     chars_length = strlen(chars);
     memset(buffer, chars[0], str_length);
