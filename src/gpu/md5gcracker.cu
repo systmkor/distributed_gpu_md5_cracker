@@ -494,8 +494,8 @@ md5_finish(md5_state_t *pms, md5_byte_t digest[16])
 //////////////////////////////////////////////////////////////////
 
 #define WORD_LEN 512
-#define GRID 32
-#define BLOCK 32
+#define GRID 65535
+#define BLOCK 64
 
 
 /* http://stackoverflow.com/questions/13245258/handle-error-not-found-error-in-cuda */
@@ -508,7 +508,7 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 #define HANDLE_ERROR(err) (HandleError(err, __FILE__, __LINE__))
 
 typedef struct Word {
-   char word[128];
+   char word[64];
    int len;
 } Word;
 
@@ -646,25 +646,44 @@ void crackHash(char* hash, int dict) {
    /* Fill in the array of words */
    initWords(words, dictFile, numWords, fileStat.st_size);
 
+   //get device count  
+   int device = 0;  
+   HANDLE_ERROR(cudaGetDevice(&device));  
+   printf("device: %d\n", device);
+   struct cudaDeviceProp prop;
+   HANDLE_ERROR(cudaGetDeviceProperties(&prop, device));
+   printf("global memory: %lu\n", prop.totalGlobalMem);
+   unsigned long needed = sizeof(Word) * numWords + 16 + sizeof(int); 
+   printf("need: %lu\n", needed);
+   printf(prop.totalGlobalMem > needed ? "enough\n" : "not enough\n");
+   unsigned int words_done = 0;
+   unsigned int words_per_iteration = (needed - (16 + sizeof(int))) / sizeof(Word);
+   printf("words_per_iteration: %lu\n", words_per_iteration);
+   exit(0);
+
+
+   unsigned long done;
    HANDLE_ERROR(cudaMalloc(&cu_words, sizeof(Word) * numWords));
    HANDLE_ERROR(cudaMalloc(&cu_hash_digest, sizeof(md5_byte_t)*16));
    HANDLE_ERROR(cudaMalloc(&cu_result, sizeof(int)));
 
-   HANDLE_ERROR(cudaMemcpy(cu_words, words, sizeof(Word) * numWords, cudaMemcpyHostToDevice));
    HANDLE_ERROR(cudaMemcpy(cu_hash_digest, hash_digest, sizeof(md5_byte_t)*16, cudaMemcpyHostToDevice));
    HANDLE_ERROR(cudaMemcpy(cu_result, &result, sizeof(int), cudaMemcpyHostToDevice));
 
    dim3 grid(GRID); 
    dim3 block(BLOCK);
 
-   cudaCrack<<<grid, block>>>(cu_hash_digest, cu_words, numWords, cu_result);
+   while (1) {
+       HANDLE_ERROR(cudaMemcpy(cu_words, words, sizeof(Word) * numWords, cudaMemcpyHostToDevice));
 
-   HANDLE_ERROR(cudaMemcpy(&result, cu_result, sizeof(int), cudaMemcpyDeviceToHost));
-   
-   printf("%d\n", result);
-   if (result >= 0) {
-       printf("solution: %s\n", words[result].word);
-       return;
+       cudaCrack<<<grid, block>>>(cu_hash_digest, cu_words, numWords, cu_result);
+
+       HANDLE_ERROR(cudaMemcpy(&result, cu_result, sizeof(int), cudaMemcpyDeviceToHost));
+       
+       if (result >= 0) {
+           printf("solution: %s\n", words[result].word);
+           return;
+       }
    }
 
    printf("Tested against %d words, no match\n", numWords);
