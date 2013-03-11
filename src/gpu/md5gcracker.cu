@@ -657,13 +657,11 @@ void crackHash(char* hash, int dict) {
    printf("need: %lu\n", needed);
    printf(prop.totalGlobalMem > needed ? "enough\n" : "not enough\n");
    unsigned int words_done = 0;
-   unsigned int words_per_iteration = (needed - (16 + sizeof(int))) / sizeof(Word);
+   unsigned int words_per_iteration = (prop.totalGlobalMem - ((unsigned long)(prop.totalGlobalMem * .90))) / sizeof(Word);
    printf("words_per_iteration: %lu\n", words_per_iteration);
-   exit(0);
+   printf("words_per_iteration: %lu\n", sizeof(Word)*words_per_iteration);
 
-
-   unsigned long done;
-   HANDLE_ERROR(cudaMalloc(&cu_words, sizeof(Word) * numWords));
+   HANDLE_ERROR(cudaMalloc(&cu_words, sizeof(Word) * words_per_iteration));
    HANDLE_ERROR(cudaMalloc(&cu_hash_digest, sizeof(md5_byte_t)*16));
    HANDLE_ERROR(cudaMalloc(&cu_result, sizeof(int)));
 
@@ -673,17 +671,24 @@ void crackHash(char* hash, int dict) {
    dim3 grid(GRID); 
    dim3 block(BLOCK);
 
-   while (1) {
-       HANDLE_ERROR(cudaMemcpy(cu_words, words, sizeof(Word) * numWords, cudaMemcpyHostToDevice));
+   while (words_done < numWords) {
+       if (words_done + words_per_iteration > numWords)
+           words_per_iteration = numWords - words_done;
 
-       cudaCrack<<<grid, block>>>(cu_hash_digest, cu_words, numWords, cu_result);
+       HANDLE_ERROR(cudaMemcpy(cu_words, words + words_done, sizeof(Word) * words_per_iteration,
+                               cudaMemcpyHostToDevice));
+
+       cudaCrack<<<grid, block>>>(cu_hash_digest, cu_words, words_per_iteration, cu_result);
 
        HANDLE_ERROR(cudaMemcpy(&result, cu_result, sizeof(int), cudaMemcpyDeviceToHost));
        
        if (result >= 0) {
-           printf("solution: %s\n", words[result].word);
+           printf("solution: %s\n", words[result+words_done].word);
            return;
        }
+
+       printf("not found\n");
+       words_done += words_per_iteration;
    }
 
    printf("Tested against %d words, no match\n", numWords);
