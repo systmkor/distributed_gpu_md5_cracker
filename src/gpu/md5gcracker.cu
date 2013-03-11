@@ -2,9 +2,7 @@
  *          Austin Munsch,
  *          Orion Miller
  *
- * Description: Milestone 2 
- *              See kernel.
- * Notes: This file will not compile.
+ * Description: Parallelized Dictionary MD5 Cracker
  */
 
 #include <stdio.h>
@@ -496,8 +494,8 @@ md5_finish(md5_state_t *pms, md5_byte_t digest[16])
 //////////////////////////////////////////////////////////////////
 
 #define WORD_LEN 512
-#define GRID 10
-#define BLOCK 10
+#define GRID 32
+#define BLOCK 32
 
 
 /* http://stackoverflow.com/questions/13245258/handle-error-not-found-error-in-cuda */
@@ -510,7 +508,7 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 #define HANDLE_ERROR(err) (HandleError(err, __FILE__, __LINE__))
 
 typedef struct Word {
-   char* word;
+   char word[128];
    int len;
 } Word;
 
@@ -581,25 +579,29 @@ __global__ void cudaCrack(md5_byte_t *hash_digest, Word *words, int num_words, i
    md5_byte_t digest[16];
    //char hex_output[16*2 + 1];
    int i;
-   char flag = 1;
+   char flag;
 
    /* Iterate when more words than max threads */
    while (t < num_words) {
+       flag = 1;
+
        md5_init(&state);
        md5_append(&state, (const md5_byte_t *) words[t].word, words[t].len);
        md5_finish(&state, digest);
 
-       for (i = 0; i < 16; i += 1) {
-         if (hash_digest[i] != digest[i]) {
-           flag = 0;
-           break;
-         }
+
+       for (i = 0; i < 16; i++) {
+           if (hash_digest[i] != digest[i]) {
+//               printf("%d: mismatch: %02x != %02x\n", t, hash_digest[i], digest[i]);
+               flag = 0;
+               break;
+           }
        }
 
-      if (flag) { 
-        *result = t;
-        return;
-      }
+       if (flag) { 
+           *result = t;
+           return;
+       }
       
        /* 
        for (i = 0; i < 16; i++)
@@ -627,23 +629,17 @@ void md5ByteToStr(md5_byte_t *hash_digest, char *hash) {
     int i;
     for (i = 0; i < 16; i++)
         sprintf(hash + i * 2, "%02x", hash_digest[i]);
+    hash[32] = '\0';
 }
 
 void crackHash(char* hash, int dict) {
-   //int i;
    struct stat fileStat;
    char* dictFile;
-   //int curWord;
-   //char word[WORD_LEN];
-
-   //md5_state_t state;
-   //md5_byte_t digest[16];
-   //char hex_output[16*2 + 1];
 
    int numWords;
    Word* words;
    md5_byte_t hash_digest[16] = {0};
-   int result = 0;
+   int result = -1;
 
    md5_byte_t *cu_hash_digest;
    Word *cu_words;
@@ -653,8 +649,21 @@ void crackHash(char* hash, int dict) {
    //char n[32+1] = {0};
    //printf("before %s\n", hash);
    md5StrToByte(hash, hash_digest);
+   //printf("after %s\n", n);
    //md5ByteToStr(hash_digest, n);
    //printf("after %s\n", n);
+
+   //md5_state_t s;
+   //md5_byte_t d[16];
+   //char st[33];
+
+   //md5_init(&s);
+   //md5_append(&s, (const md5_byte_t *) "hello", 5);
+   //md5_finish(&s, d);
+   //md5ByteToStr(d, st);
+   //printf("%s\n", st);
+
+
    //_Exit(0);
 
 
@@ -672,16 +681,18 @@ void crackHash(char* hash, int dict) {
 
    /* Conver Hex Digest of inputed hash */
 
-   for (result = 0; result < 10; result++)
-       printf("%s\n", words[result].word);
+   //for (result = 0; words[1].word[result]; result++)
+   //   printf("'%c': '%d'\n", words[1].word[result], words[1].word[result]);
+   //result = -1;
+   //_Exit(0);
 
 
    HANDLE_ERROR(cudaMalloc(&cu_words, sizeof(Word) * numWords));
-   HANDLE_ERROR(cudaMalloc(&cu_hash_digest, 16));
+   HANDLE_ERROR(cudaMalloc(&cu_hash_digest, sizeof(md5_byte_t)*16));
    HANDLE_ERROR(cudaMalloc(&cu_result, sizeof(int)));
 
    HANDLE_ERROR(cudaMemcpy(cu_words, words, sizeof(Word) * numWords, cudaMemcpyHostToDevice));
-   HANDLE_ERROR(cudaMemcpy(cu_hash_digest, hash_digest, 16, cudaMemcpyHostToDevice));
+   HANDLE_ERROR(cudaMemcpy(cu_hash_digest, hash_digest, sizeof(md5_byte_t)*16, cudaMemcpyHostToDevice));
    HANDLE_ERROR(cudaMemcpy(cu_result, &result, sizeof(int), cudaMemcpyHostToDevice));
 
    dim3 grid(GRID); 
@@ -689,8 +700,9 @@ void crackHash(char* hash, int dict) {
 
    cudaCrack<<<grid, block>>>(cu_hash_digest, cu_words, numWords, cu_result);
 
-   //HANDLE_ERROR(cudaMemcpy(&result, cu_result, sizeof(int), cudaMemcpyDeviceToHost));
+   HANDLE_ERROR(cudaMemcpy(&result, cu_result, sizeof(int), cudaMemcpyDeviceToHost));
    
+   printf("%d\n", result);
    if (result >= 0) {
        printf("solution: %s\n", words[result].word);
        return;
@@ -719,7 +731,8 @@ void initWords(Word* words, char* dictFile, int numWords, int size) {
    for (i = 0; i < size; i++) {
       if (dictFile[i] == '\n') {
          words[curWord].len = wordLen - 1;
-         words[curWord].word = &(dictFile[i]) - wordLen + 1;
+         strncpy(words[curWord].word, &(dictFile[i]) - wordLen + 1, wordLen - 1);
+         //words[curWord].word = &(dictFile[i]) - wordLen + 1;
          curWord++;
          wordLen = 0;
       }
