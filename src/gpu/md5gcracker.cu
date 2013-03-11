@@ -581,7 +581,7 @@ __global__ void cudaCrack(md5_byte_t *hash_digest, Word *words, int num_words, i
    char flag;
 
    /* Iterate when more words than max threads */
-   while (t < num_words) {
+   while (t < num_words && *result == -1) {
        flag = 1;
 
        md5_init(&state);
@@ -684,7 +684,7 @@ int countWords(char* dictFile, int size) {
 
 void initWords(Word* words, char* dictFile, int numWords, int size) {
    int i = 0;
-   int wordLen = 0;
+   int wordLen = 1;
    int curWord = 0;
 
    for (i = 0; i < size; i++) {
