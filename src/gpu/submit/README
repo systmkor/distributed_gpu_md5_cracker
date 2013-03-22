@@ -1,0 +1,13 @@
+Authors: Luke Larson,
+         Austin Munsch,
+         Orion Miller
+
+Description: Parallelized CUDA MD5 Cracker
+
+Instructions:
+    
+    Run 'make' to build the CPU version, GPU version, and passgen programs.
+
+    Alternatively, 'test.sh' will build all programs and run a series of
+    tests to calculate the speedup gained with the GPU.
+

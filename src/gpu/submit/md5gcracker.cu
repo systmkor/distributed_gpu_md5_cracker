@@ -2,7 +2,7 @@
  *          Austin Munsch,
  *          Orion Miller
  *
- * Description: Parallelized Dictionary MD5 Cracker
+ * Description: Parallelized CUDA MD5 Cracker
  */
 
 #include <stdio.h>
@@ -16,6 +16,8 @@
 #include <ctype.h>
 #include <math.h>
 
+// Source code of md5.c and md5.h pasted directly into file because of issues
+// getting NVCC to compile in separate files.
 ///////////////////////////////////////////////////////////////////
 /*
   http://sourceforge.net/projects/libmd5-rfc/
@@ -584,37 +586,22 @@ __global__ void cudaCrack(md5_byte_t *hash_digest, Word *words,
    int t = threadIdx.x + blockIdx.x * blockDim.x;
    __shared__ md5_state_t state[64];
    __shared__ md5_byte_t digest[64][16];
-   //int i;
-   //char flag;
 
    /* Iterate when more words than max threads */
    while (t < num_words && *result == -1) {
-       //flag = 1;
-
        md5_init(&(state[threadIdx.x]));
        md5_append(&(state[threadIdx.x]), (const md5_byte_t *) words[t].word, words[t].len);
        md5_finish(&(state[threadIdx.x]), digest[threadIdx.x]);
 
+       // Compare current hash with input hash:
+       // Does not offer a significant speedup over simpler
+       // iterative compare of bytes.
        if (((QWORD *)hash_digest)->a == ((QWORD *)digest[threadIdx.x])->a &&
            ((QWORD *)hash_digest)->b == ((QWORD *)digest[threadIdx.x])->b) {
            *result = t;
            return;
        }
 
-
-       //for (i = 0; i < 16; i++) {
-       //    if (hash_digest[i] != digest[threadIdx.x][i]) {
-       //        flag = 0;
-       //        break;
-       //    }
-       //}
-
-       //if (flag) { 
-       //    *result = t;
-       //    return;
-       //}
-      
-       /* Add width of grid in threads to go through all words */
        t += blockDim.x * gridDim.x;
    }
 }
@@ -632,7 +619,6 @@ void md5ByteToStr(md5_byte_t *hash_digest, char *hash) {
     hash[32] = '\0';
 }
 
-//__constant__ md5_byte_t cu_hash_digest[16];
 void crackHash(char* hash, int dict) {
    struct stat fileStat;
    char* dictFile;
@@ -663,20 +649,12 @@ void crackHash(char* hash, int dict) {
    //get device count  
    int device = 0;  
    HANDLE_ERROR(cudaGetDevice(&device));  
-   //printf("device: %d\n", device);
    struct cudaDeviceProp prop;
    HANDLE_ERROR(cudaGetDeviceProperties(&prop, device));
-   //printf("global memory: %lu\n", prop.totalGlobalMem);
-   //unsigned long needed = sizeof(Word) * numWords + 16 + sizeof(int); 
-   //printf("need: %lu\n", needed);
-   //printf(prop.totalGlobalMem > needed ? "enough\n" : "not enough\n");
    unsigned int words_done = 0;
    unsigned int words_per_iteration =
                (prop.totalGlobalMem -
                 ((unsigned long)(prop.totalGlobalMem * .10))) / sizeof(Word);
-
-   //printf("words_per_iteration: %lu\n", words_per_iteration);
-   //printf("words_per_iteration: %lu\n", sizeof(Word)*words_per_iteration);
 
    HANDLE_ERROR(cudaMalloc(&cu_words, sizeof(Word) * words_per_iteration));
    HANDLE_ERROR(cudaMalloc(&cu_hash_digest, sizeof(md5_byte_t)*16));
@@ -684,18 +662,13 @@ void crackHash(char* hash, int dict) {
 
    HANDLE_ERROR(cudaMemcpy(cu_hash_digest, hash_digest,
                            sizeof(md5_byte_t)*16, cudaMemcpyHostToDevice));
-   //cudaMemcpyToSymbol("cu_hash_digest", hash_digest, sizeof(md5_byte_t)*16, 0,
-    //                  cudaMemcpyHostToDevice);
    HANDLE_ERROR(cudaMemcpy(cu_result, &result,
                            sizeof(int), cudaMemcpyHostToDevice));
 
    dim3 grid(GRID); 
    dim3 block(BLOCK);
 
-   //numWords = countWords(dictFile, fileStat.st_size);
-   //words = (Word*)malloc(sizeof(Word) * numWords);
-   //initWords(words, dictFile, numWords, fileStat.st_size);
-
+   // Iterate over chunks of dictionary
    while (words_done < numWords) {
        if (words_done + words_per_iteration > numWords)
            words_per_iteration = numWords - words_done;
@@ -715,7 +688,6 @@ void crackHash(char* hash, int dict) {
            return;
        }
 
-       //printf("not found\n");
        words_done += words_per_iteration;
    }
 

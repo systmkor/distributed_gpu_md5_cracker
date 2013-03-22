@@ -1,3 +1,10 @@
+/* Authors: Luke Larson,
+ *          Austin Munsch,
+ *          Orion Miller
+ *
+ * Description: CPU MD5 Cracker
+ */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
